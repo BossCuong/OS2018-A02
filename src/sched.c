@@ -31,7 +31,10 @@ struct pcb_t *get_proc(void)
 	pthread_mutex_lock(&queue_lock);
 
 	if (queue_empty())
+	{
+		pthread_mutex_unlock(&queue_lock);
 		return NULL;
+	}
 
 	if (empty(&ready_queue))
 	{
