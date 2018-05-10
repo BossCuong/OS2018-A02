@@ -28,6 +28,8 @@ all: mem sched os test_all
 mem: $(MEM_OBJ)
 	$(MAKE) $(LFLAGS) $(MEM_OBJ) -o mem $(LIB)
 
+mem_debug: $(MEM_OBJ)
+	$(MAKE) $(LFLAGS) $(MEM_OBJ) -g -o mem $(LIB)
 # Just compile scheduler
 sched: $(SCHED_OBJ)
 	$(MAKE) $(LFLAGS) $(SCHED_OBJ) -o os $(LIB)

@@ -59,7 +59,7 @@ static struct page_table_t *get_page_table(
 	if (seg_table->size == 0)
 		return NULL;
 
-	int i;
+	int i = 0;
 	addr_t seg_index;
 	struct page_table_t *r_pages = NULL;
 
@@ -69,7 +69,10 @@ static struct page_table_t *get_page_table(
 		seg_index = seg_table->table[i].v_index;
 
 		if (seg_index == index)
+		{
 			r_pages = seg_table->table[i].pages;
+			break;
+		}
 	}
 
 	return r_pages;
@@ -128,9 +131,6 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 	 * process [proc] and save the address of the first
 	 * byte in the allocated memory region to [ret_mem].
 	 * */
-	// proc = (struct pcb_t *)malloc(size);
-
-	// ret_mem = proc;
 
 	uint32_t num_pages = ((size % PAGE_SIZE) == 0) ? size / PAGE_SIZE : size / PAGE_SIZE + 1; // Number of pages we will use
 	int mem_avail = 0;																		  // We could allocate new memory region or not?
@@ -145,14 +145,19 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 	 * */
 
 	uint32_t free_p_page = 0;
-	uint32_t free_v_page = proc->bp / PAGE_SIZE;
 
+	//Get physical page available
 	for (int i = 0; i < NUM_PAGES; i++)
 		if (_mem_stat[i].proc == 0)
 			++free_p_page;
 
-	if (num_pages <= free_p_page && num_pages <= free_v_page)
-		mem_avail = 1;
+	//Get number mem need to use,heap + stack ?
+	uint32_t using_v_mem = proc->bp + num_pages * PAGE_SIZE;
+
+	//Check that physical and virtual mem is available to use
+	if (num_pages <= free_p_page)
+		if (using_v_mem <= (1 << ADDRESS_SIZE))
+			mem_avail = 1;
 
 	if (mem_avail)
 	{
@@ -165,10 +170,22 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 		 * 	- Add entries to segment table page tables of [proc]
 		 * 	  to ensure accesses to allocated memory slot is
 		 * 	  valid. */
-
-		for (int i = 0; i < num_pages; i++)
+		int cur_page = 0;
+		int pre_page = 0;
+		for (int i = 0; i < NUM_PAGES; i++)
 		{
+			if (_mem_stat[i].proc == 0)
+			{
+				_mem_stat[i].proc = proc->pid;
+				_mem_stat[i].index = cur_page;
+				_mem_stat[i].next = cur_page + 1;
+
+				pre_page = cur_page;
+				cur_page++;
+			}
 		}
+		//Next index of last page is -1
+		_mem_stat[pre_page].next = -1;
 	}
 	pthread_mutex_unlock(&mem_lock);
 	return ret_mem;
@@ -184,6 +201,9 @@ int free_mem(addr_t address, struct pcb_t *proc)
 	 * 	  the process [proc].
 	 * 	- Remember to use lock to protect the memory from other
 	 * 	  processes.  */
+	pthread_mutex_lock(&mem_lock);
+
+	pthread_mutex_unlock(&mem_lock);
 	return 0;
 }
 
