@@ -69,14 +69,14 @@ static struct page_table_t *get_page_table(
 		// Enter your code here
 		for (j = 0; j < (1 << SEGMENT_LEN); j++)
 		{
-			seg_index = seg_table[i]->table[j].v_index;
+			seg_index = seg_table[i].table[j].v_index;
 
 			if (seg_index == index)
-				r_pages = seg_table[i]->table[j].pages;
+				r_pages = seg_table[i].table[j].pages;
 		}
 	}
 
-	return r_pages
+	return r_pages;
 }
 
 /* Translate virtual address to physical address. If [virtual_addr] is valid,
@@ -104,6 +104,7 @@ static int translate(
 	}
 
 	int i;
+	addr_t p_index;
 	for (i = 0; i < page_table->size; i++)
 	{
 		if (page_table->table[i].v_index == second_lv)
@@ -112,6 +113,11 @@ static int translate(
 			 * to [p_index] field of page_table->table[i] to 
 			 * produce the correct physical address and save it to
 			 * [*physical_addr]  */
+
+			p_index = page_table->table[i].p_index;
+
+			*physical_addr = (p_index << OFFSET_LEN) + offset;
+
 			return 1;
 		}
 	}
