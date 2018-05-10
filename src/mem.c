@@ -60,20 +60,16 @@ static struct page_table_t *get_page_table(
 		return NULL;
 
 	int i;
-	int j;
 	addr_t seg_index;
 	struct page_table_t *r_pages = NULL;
 
 	for (i = 0; i < seg_table->size; i++)
 	{
 		// Enter your code here
-		for (j = 0; j < (1 << SEGMENT_LEN); j++)
-		{
-			seg_index = seg_table[i].table[j].v_index;
+		seg_index = seg_table->table[i].v_index;
 
-			if (seg_index == index)
-				r_pages = seg_table[i].table[j].pages;
-		}
+		if (seg_index == index)
+			r_pages = seg_table->table[i].pages;
 	}
 
 	return r_pages;
@@ -132,6 +128,9 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 	 * process [proc] and save the address of the first
 	 * byte in the allocated memory region to [ret_mem].
 	 * */
+	// proc = (struct pcb_t *)malloc(size);
+
+	// ret_mem = proc;
 
 	uint32_t num_pages = ((size % PAGE_SIZE) == 0) ? size / PAGE_SIZE : size / PAGE_SIZE + 1; // Number of pages we will use
 	int mem_avail = 0;																		  // We could allocate new memory region or not?
@@ -145,6 +144,16 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 	 * For virtual memory space, check bp (break pointer).
 	 * */
 
+	uint32_t free_p_page = 0;
+	uint32_t free_v_page = proc->bp / PAGE_SIZE;
+
+	for (int i = 0; i < NUM_PAGES; i++)
+		if (_mem_stat[i].proc == 0)
+			++free_p_page;
+
+	if (num_pages <= free_p_page && num_pages <= free_v_page)
+		mem_avail = 1;
+
 	if (mem_avail)
 	{
 		/* We could allocate new memory region to the process */
@@ -156,6 +165,10 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 		 * 	- Add entries to segment table page tables of [proc]
 		 * 	  to ensure accesses to allocated memory slot is
 		 * 	  valid. */
+
+		for (int i = 0; i < num_pages; i++)
+		{
+		}
 	}
 	pthread_mutex_unlock(&mem_lock);
 	return ret_mem;
