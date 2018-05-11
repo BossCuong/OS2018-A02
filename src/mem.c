@@ -212,7 +212,8 @@ addr_t alloc_mem(uint32_t size, struct pcb_t *proc)
 			seg_size = ++proc->seg_table->size;
 			proc->seg_table->table[seg_size - 1].v_index = seg_size - 1;
 		}
-
+		//If proc already has seg teable
+		seg_size = proc->seg_table->size;
 		//Init first page table for first segment
 		if (!proc->seg_table->table[seg_size - 1].pages)
 		{
@@ -316,8 +317,8 @@ int free_mem(addr_t address, struct pcb_t *proc)
 				if (second_lv == page_table->table[i].v_index)
 				{
 					//Clear entry
-					page_table->table[i].v_index = NULL;
-					page_table->table[i].p_index = NULL;
+					page_table->table[i].v_index = -1;
+					page_table->table[i].p_index = -1;
 					virtual_addr = virtual_addr + PAGE_SIZE;
 					num_pages--;
 					break;
