@@ -319,6 +319,8 @@ int free_mem(addr_t address, struct pcb_t *proc)
 					//Clear entry
 					page_table->table[i].v_index = -1;
 					page_table->table[i].p_index = -1;
+
+					//
 					virtual_addr = virtual_addr + PAGE_SIZE;
 					num_pages--;
 					break;
