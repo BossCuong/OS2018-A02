@@ -278,47 +278,50 @@ int free_mem(addr_t address, struct pcb_t *proc)
 	 * 	  processes.  */
 	/**********************************************************************************/
 	pthread_mutex_lock(&mem_lock);
+	addr_t virtual_addr = address;
+
 	addr_t physical_addr;
-	int numPages = 0;
-	int i;
+	int num_pages = 0;
+	struct page_table_t *page_table = NULL;
+
 	if (translate(address, &physical_addr, proc))
 	{
-		addr_t physical_page = physical_addr >> OFFSET_LEN;
-		//Xac dinh so page can free
-		while (physical_page != -1)
+		//physic address = p_index << OFFSET_LEN + offset => p_index = physic addr >> OFFSET_LEN
+		uint32_t p_index = physical_addr >> OFFSET_LEN;
+
+		//Free _mem_stat by assign proc stat to zero
+		while (p_index != -1) //last page has next = -1
 		{
-			_mem_stat[physical_page].proc = 0;
-			physical_page = _mem_stat[physical_page].next;
-			numPages++;
+			_mem_stat[p_index].proc = 0;
+			p_index = _mem_stat[p_index].next;
+			num_pages++;
 		}
-		addr_t virtual_addr = address;
 
-		while (numPages != 0)
+		//Free unused entries
+		while (num_pages != 0)
 		{
+			//Get v_index of segment
 			addr_t first_lv = get_first_lv(virtual_addr);
-			addr_t second_lv = get_second_lv(virtual_addr);
-
-			struct page_table_t *page_table = NULL;
+			//Get page table have v_index segment
 			page_table = get_page_table(first_lv, proc->seg_table);
 
-			//Gan v_index, p_index bang 1
-			if (page_table != NULL)
-			{
-				for (i = 0; i < (1 << PAGE_LEN); i++)
-				{
-					if (second_lv == page_table->table[i].v_index)
-					{
-						page_table->table[i].v_index = -1;
-						page_table->table[i].p_index = -1;
-						virtual_addr = virtual_addr + PAGE_SIZE;
-						numPages--;
-						break;
-					}
-				}
-			}
-			else
-			{
+			//Get v_index of page
+			addr_t second_lv = get_second_lv(virtual_addr);
+
+			if (page_table == NULL)
 				break;
+
+			for (int i = 0; i < (1 << PAGE_LEN); i++)
+			{
+				if (second_lv == page_table->table[i].v_index)
+				{
+					//Clear entry
+					page_table->table[i].v_index = NULL;
+					page_table->table[i].p_index = NULL;
+					virtual_addr = virtual_addr + PAGE_SIZE;
+					num_pages--;
+					break;
+				}
 			}
 		}
 	}
